@@ -45,13 +45,13 @@ echo $ANTHROPIC_API_KEY
 
 ## Step 3: Install with Lazy.nvim
 
-### For Released Plugin (when published)
+### For Released Plugin
 
 Add to your `lazy.nvim` configuration:
 
 ```lua
 {
-  "yourusername/code-improver.nvim",
+  "codegirl-007/code-standards",
   config = function()
     require("code-improver").setup({
       standards_folder = "./docs/standards/",  -- customize as needed

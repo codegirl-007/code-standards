@@ -26,7 +26,7 @@ Add this to your Lazy.nvim configuration:
 
 ```lua
 {
-  "yourusername/code-improver.nvim",
+  "codegirl-007/code-standards",
   config = function()
     require("code-improver").setup({
       api_key = os.getenv("ANTHROPIC_API_KEY"),
@@ -40,7 +40,7 @@ Add this to your Lazy.nvim configuration:
 
 ```lua
 use {
-  "yourusername/code-improver.nvim",
+  "codegirl-007/code-standards",
   config = function()
     require("code-improver").setup({
       api_key = os.getenv("ANTHROPIC_API_KEY"),
