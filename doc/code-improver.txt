@@ -1,0 +1,213 @@
+*code-improver.txt*  AI-powered code improvement suggestions using Claude
+
+==============================================================================
+CONTENTS                                              *code-improver-contents*
+
+    1. Introduction ........................... |code-improver-introduction|
+    2. Requirements ........................... |code-improver-requirements|
+    3. Installation ........................... |code-improver-installation|
+    4. Configuration .......................... |code-improver-configuration|
+    5. Usage .................................. |code-improver-usage|
+    6. Commands ............................... |code-improver-commands|
+    7. Functions .............................. |code-improver-functions|
+    8. Standards .............................. |code-improver-standards|
+    9. Troubleshooting ........................ |code-improver-troubleshooting|
+
+==============================================================================
+1. INTRODUCTION                                   *code-improver-introduction*
+
+code-improver.nvim is a lightweight Neovim plugin that analyzes your code
+and provides improvement suggestions using Claude AI. It automatically
+includes your codebase standards and guidelines from markdown files to
+provide context-aware, project-specific recommendations.
+
+Features:~
+  • Command-based trigger with |:ImproveCode|
+  • Smart content selection (visual selection or entire file)
+  • Automatic standards integration from markdown files
+  • Vertical split window display
+  • Claude AI integration for intelligent suggestions
+  • Intelligent per-project caching
+
+==============================================================================
+2. REQUIREMENTS                                   *code-improver-requirements*
+
+  • Neovim >= 0.8.0
+  • curl command-line tool
+  • Anthropic API key (get one at https://console.anthropic.com)
+
+==============================================================================
+3. INSTALLATION                                   *code-improver-installation*
+
+Using lazy.nvim:~
+>
+    {
+      "yourusername/code-improver.nvim",
+      config = function()
+        require("code-improver").setup({
+          api_key = os.getenv("ANTHROPIC_API_KEY"),
+          standards_folder = "./docs/standards/",
+        })
+      end,
+    }
+<
+
+Set your API key as an environment variable:~
+>
+    export ANTHROPIC_API_KEY='your-api-key-here'
+<
+
+==============================================================================
+4. CONFIGURATION                                 *code-improver-configuration*
+
+Configure the plugin by calling the setup function:~
+>
+    require("code-improver").setup({
+      api_key = nil,                    -- API key (or from env var)
+      standards_folder = "./docs/standards/",  -- Standards path
+      model = "claude-3-5-sonnet-20241022",    -- Claude model
+      max_tokens = 4096,                -- Max response tokens
+      split_position = "right",         -- "right", "left", "above", "below"
+      split_size = nil,                 -- Window size (nil = 50%)
+    })
+<
+
+Configuration Options:~
+
+*code-improver.config.api_key*
+    Your Anthropic API key. If not provided, will read from the
+    ANTHROPIC_API_KEY environment variable.
+    Default: nil
+
+*code-improver.config.standards_folder*
+    Path to the folder containing your coding standards markdown files.
+    This path is relative to Neovim's current working directory (|:pwd|).
+    Default: "./docs/standards/"
+
+*code-improver.config.model*
+    The Claude model to use for analysis.
+    Default: "claude-3-5-sonnet-20241022"
+
+*code-improver.config.max_tokens*
+    Maximum number of tokens in Claude's response.
+    Default: 4096
+
+*code-improver.config.split_position*
+    Position of the suggestions window: "right", "left", "above", "below"
+    Default: "right"
+
+*code-improver.config.split_size*
+    Size of the split window (width for vertical, height for horizontal).
+    Set to nil to use default 50% split.
+    Default: nil
+
+==============================================================================
+5. USAGE                                                 *code-improver-usage*
+
+Basic Usage:~
+    1. Open a file in Neovim
+    2. Run |:ImproveCode|
+    3. View suggestions in the split window
+    4. Press 'q' to close the suggestions window
+
+Visual Selection:~
+    1. Enter visual mode (v, V, or Ctrl-v)
+    2. Select the code you want to analyze
+    3. Run |:ImproveCode|
+    4. View suggestions for just the selected code
+
+==============================================================================
+6. COMMANDS                                           *code-improver-commands*
+
+                                                              *:ImproveCode*
+:ImproveCode
+    Analyze the current file or visual selection and display improvement
+    suggestions in a vertical split window.
+
+    Can be used with a range to analyze specific lines:
+        :'<,'>ImproveCode
+
+==============================================================================
+7. FUNCTIONS                                         *code-improver-functions*
+
+code-improver.setup({config})                         *code-improver.setup()*
+    Set up the plugin with the given configuration.
+
+    Parameters:~
+        {config}  Table with configuration options (see |code-improver-configuration|)
+
+code-improver.improve_code()                    *code-improver.improve_code()*
+    Main function to analyze code and show suggestions.
+    Usually called via |:ImproveCode| command.
+
+code-improver.clear_cache()                      *code-improver.clear_cache()*
+    Clear the standards cache. Use this after updating your standards files
+    if you want to force a reload.
+
+    Example:~
+        :lua require('code-improver').clear_cache()
+
+==============================================================================
+8. STANDARDS                                         *code-improver-standards*
+
+The plugin can automatically include your project's coding standards in the
+analysis. This provides context-aware suggestions aligned with your team's
+practices.
+
+Standards Folder:~
+    Place markdown files with your coding standards in the configured
+    standards folder (default: ./docs/standards/ relative to |:pwd|).
+
+Example Structure:~
+>
+    my-project/
+    ├── docs/
+    │   └── standards/
+    │       ├── coding-style.md
+    │       ├── best-practices.md
+    │       └── architecture.md
+    ├── src/
+    │   └── main.lua
+    └── init.lua
+<
+
+How It Works:~
+    1. Plugin scans standards folder for .md files
+    2. Aggregates all markdown content
+    3. Includes standards in the prompt to Claude
+    4. Claude provides suggestions aligned with your standards
+
+Caching:~
+    Standards are cached per-project (based on current working directory)
+    and per-modification time. The cache is automatically invalidated when
+    standards files are updated.
+
+    To manually clear the cache:
+        :lua require('code-improver').clear_cache()
+
+==============================================================================
+9. TROUBLESHOOTING                           *code-improver-troubleshooting*
+
+"API key not configured" error:~
+    Make sure you've set the ANTHROPIC_API_KEY environment variable or
+    passed api_key in the setup configuration.
+
+"Standards folder not found" warning:~
+    The standards folder path is relative to |:pwd|. Either:
+    • Create the folder at the specified path
+    • Adjust the standards_folder configuration option
+    • The plugin will still work without standards
+
+API request failed:~
+    • Check your internet connection
+    • Verify your API key is valid
+    • Check if you've hit API rate limits
+    • Ensure curl is installed and in your PATH
+
+Split window not appearing:~
+    Check for error messages with :messages
+    Ensure the plugin is properly configured
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
+

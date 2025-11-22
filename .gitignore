@@ -1,0 +1,22 @@
+# Neovim plugin .gitignore
+
+# Lua bytecode
+*.luac
+
+# vim/nvim swap files
+*.swp
+*.swo
+*.swn
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Test artifacts
+test-output/
+*.log
+
