@@ -10,6 +10,12 @@ function M.show_suggestions(content, config)
   -- Close existing window if open
   M.close_suggestions()
   
+  -- Validate content
+  if not content or content == "" then
+    vim.notify("code-improver: No content to display", vim.log.levels.WARN)
+    return
+  end
+  
   -- Create a new buffer
   suggestion_buf = vim.api.nvim_create_buf(false, true) -- not listed, scratch buffer
   
@@ -20,10 +26,12 @@ function M.show_suggestions(content, config)
   vim.api.nvim_buf_set_option(suggestion_buf, "filetype", "markdown")
   vim.api.nvim_buf_set_option(suggestion_buf, "modifiable", true)
   
-  -- Split content into lines
-  local lines = {}
-  for line in content:gmatch("[^\r\n]+") do
-    table.insert(lines, line)
+  -- Split content into lines (more robust method)
+  local lines = vim.split(content, "\n", { plain = true })
+  
+  -- If no lines were created, try alternative splitting
+  if #lines == 0 then
+    lines = { content }
   end
   
   -- Add header
@@ -84,6 +92,9 @@ function M.show_suggestions(content, config)
     ":lua require('code-improver.ui').close_suggestions()<CR>",
     { noremap = true, silent = true }
   )
+  
+  -- Force UI update to ensure window is visible
+  vim.cmd('redraw')
   
   -- Return focus to original window if user wants
   -- (comment out the next line if you want focus to stay in suggestions)

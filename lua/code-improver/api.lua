@@ -69,7 +69,7 @@ local function parse_response(response_text)
   -- Try using vim's built-in JSON decoder first (Neovim 0.8+)
   if vim.json and vim.json.decode then
     local ok, decoded = pcall(vim.json.decode, response_text)
-    if ok then
+    if ok and decoded then
       -- Check for error in response
       if decoded.error then
         return nil, "API Error: " .. (decoded.error.message or "Unknown error")
@@ -80,7 +80,22 @@ local function parse_response(response_text)
         return decoded.content[1].text, nil
       end
       
-      return nil, "Failed to find text content in API response"
+      -- Debug: show what we got
+      local debug_info = "Response structure: "
+      if decoded.content then
+        debug_info = debug_info .. "has content field, "
+        if type(decoded.content) == "table" then
+          debug_info = debug_info .. "#content=" .. #decoded.content
+        end
+      else
+        debug_info = debug_info .. "no content field"
+      end
+      
+      return nil, "Failed to find text content in API response. " .. debug_info
+    elseif not ok then
+      -- JSON decode failed, show error
+      local json_err = tostring(decoded)
+      vim.notify("JSON decode failed: " .. json_err .. ", trying manual parsing", vim.log.levels.WARN)
     end
     -- If vim.json.decode failed, fall through to manual parsing
   end
@@ -164,9 +179,9 @@ function M.improve_code(config, standards_content, code_content, filename)
   -- Create temp file for response
   local response_file = os.tmpname()
   
-  -- Build curl command with output to file
+  -- Build curl command with output to file and timeout
   local curl_cmd = string.format(
-    'curl -s -X POST https://api.anthropic.com/v1/messages ' ..
+    'curl -s --max-time 120 -X POST https://api.anthropic.com/v1/messages ' ..
     '-H "Content-Type: application/json" ' ..
     '-H "x-api-key: %s" ' ..
     '-H "anthropic-version: 2023-06-01" ' ..
@@ -194,7 +209,7 @@ function M.improve_code(config, standards_content, code_content, filename)
   local response_fh = io.open(response_file, "r")
   if not response_fh then
     os.remove(response_file)
-    return nil, "Failed to read API response"
+    return nil, "Failed to read API response file"
   end
   
   local response = response_fh:read("*all")
@@ -203,12 +218,17 @@ function M.improve_code(config, standards_content, code_content, filename)
   -- Clean up response temp file
   os.remove(response_file)
   
+  -- Check if response is empty
+  if not response or response == "" then
+    return nil, "Empty response from API"
+  end
+  
   -- Parse response
   local content, err = parse_response(response)
   if err then
     -- Add helpful debug info
-    local preview = response:sub(1, 200)
-    return nil, err .. "\n\nResponse preview: " .. preview
+    local preview = response:sub(1, 500)
+    return nil, err .. "\n\nResponse preview:\n" .. preview
   end
   
   return content, nil

@@ -82,7 +82,17 @@ function M.improve_code()
   
   -- Call API (this will block, but that's okay for now)
   -- In a production plugin, you'd want to make this async
-  local suggestions, api_err = api.improve_code(cfg, standards_content, code_content, filename)
+  local ok, suggestions, api_err = pcall(function()
+    return api.improve_code(cfg, standards_content, code_content, filename)
+  end)
+  
+  if not ok then
+    -- Lua error occurred
+    local err_msg = "Unexpected error: " .. tostring(suggestions)
+    vim.notify("code-improver: " .. err_msg, vim.log.levels.ERROR)
+    ui.show_error(err_msg, cfg)
+    return
+  end
   
   if api_err then
     vim.notify("code-improver: " .. api_err, vim.log.levels.ERROR)
@@ -90,15 +100,70 @@ function M.improve_code()
     return
   end
   
-  -- Show suggestions
-  vim.notify("code-improver: Suggestions ready!", vim.log.levels.INFO)
-  ui.show_suggestions(suggestions, cfg)
+  if not suggestions or suggestions == "" then
+    local err_msg = "No suggestions received from API"
+    vim.notify("code-improver: " .. err_msg, vim.log.levels.ERROR)
+    ui.show_error(err_msg, cfg)
+    return
+  end
+  
+  -- Show suggestions (schedule to ensure UI updates properly)
+  vim.schedule(function()
+    vim.notify("code-improver: Suggestions ready!", vim.log.levels.INFO)
+    ui.show_suggestions(suggestions, cfg)
+  end)
 end
 
 -- Command to clear standards cache
 function M.clear_cache()
   standards.clear_cache()
   vim.notify("code-improver: Standards cache cleared", vim.log.levels.INFO)
+end
+
+-- Test API connection (for debugging)
+function M.test_api()
+  local cfg = config.get()
+  local ok, err = config.validate()
+  if not ok then
+    vim.notify("code-improver: " .. err, vim.log.levels.ERROR)
+    return
+  end
+  
+  vim.notify("Testing API connection...", vim.log.levels.INFO)
+  
+  -- Simple test code
+  local test_code = "function hello() print('world') end"
+  local suggestions, api_err = api.improve_code(cfg, nil, test_code, "test.lua")
+  
+  if api_err then
+    vim.notify("API Test FAILED: " .. api_err, vim.log.levels.ERROR)
+    print("Full error: " .. api_err)
+  else
+    vim.notify("API Test SUCCESS! Response length: " .. #suggestions .. " chars", vim.log.levels.INFO)
+    print("Response preview: " .. suggestions:sub(1, 200))
+  end
+end
+
+-- Test UI display (for debugging)
+function M.test_ui()
+  local cfg = config.get()
+  local test_content = [[# Test Suggestions
+
+This is a test of the UI display system.
+
+## Test Section 1
+- Item 1
+- Item 2
+- Item 3
+
+## Test Section 2
+Here is some sample text to verify the display is working correctly.
+
+Press 'q' to close this window.]]
+  
+  vim.notify("Showing test UI window...", vim.log.levels.INFO)
+  ui.show_suggestions(test_content, cfg)
+  vim.notify("Test UI window should be visible now", vim.log.levels.INFO)
 end
 
 -- Export the improve_code function for direct calling
