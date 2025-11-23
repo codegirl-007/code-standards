@@ -111,7 +111,20 @@ end
 -- Show a loading message
 function M.show_loading(config)
   -- Create a temporary buffer with loading message
-  local loading_content = "# Code Improvement\n\nAnalyzing your code...\n\nPlease wait while Claude reviews your code."
+  local loading_content = [[# Code Improvement
+
+⏳ **Analyzing your code...**
+
+Please wait while Claude AI reviews your code and generates suggestions.
+
+This may take a few seconds depending on:
+- The size of your code
+- Your standards documentation
+- API response time
+
+---
+
+_You can press `q` to cancel if needed._]]
   M.show_suggestions(loading_content, config)
 end
 

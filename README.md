@@ -95,8 +95,8 @@ require("code-improver").setup({
   model = "claude-3-5-sonnet-20241022",
   
   -- Maximum tokens for Claude response
-  -- Default: 4096
-  max_tokens = 4096,
+  -- Default: 8192
+  max_tokens = 8192,
   
   -- Split window position: "right", "left", "above", "below"
   -- Default: "right"

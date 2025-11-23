@@ -66,7 +66,11 @@ function M.improve_code()
   end
   
   -- Show loading message
+  vim.notify("code-improver: Sending request to Claude AI...", vim.log.levels.INFO)
   ui.show_loading(cfg)
+  
+  -- Force UI to update so user sees the loading message
+  vim.cmd('redraw')
   
   -- Load standards (this happens in background, non-blocking for user experience)
   local standards_content, standards_err = standards.load_standards(cfg)
@@ -87,6 +91,7 @@ function M.improve_code()
   end
   
   -- Show suggestions
+  vim.notify("code-improver: Suggestions ready!", vim.log.levels.INFO)
   ui.show_suggestions(suggestions, cfg)
 end
 

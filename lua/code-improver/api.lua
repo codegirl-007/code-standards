@@ -67,17 +67,52 @@ end
 -- Parse the API response
 local function parse_response(response_text)
   -- Find the content field in the JSON response
-  -- This is a simple parser - in production, you'd want a proper JSON library
-  local content = response_text:match('"text"%s*:%s*"([^"]*)"')
+  -- We need to properly handle escaped quotes within the text content
   
-  if not content then
+  -- First, try to find the text field
+  local text_start = response_text:find('"text"%s*:%s*"')
+  if not text_start then
     -- Try to extract any error message
     local error_msg = response_text:match('"message"%s*:%s*"([^"]*)"')
     if error_msg then
       return nil, "API Error: " .. error_msg
     end
-    return nil, "Failed to parse API response"
+    return nil, "Failed to parse API response - no text field found"
   end
+  
+  -- Find where the actual content starts (after "text":")
+  local content_start = response_text:find('"', text_start + 1)
+  if not content_start then
+    return nil, "Failed to parse API response - malformed text field"
+  end
+  content_start = content_start + 1
+  
+  -- Now we need to find the end of the string, accounting for escaped quotes
+  local i = content_start
+  local escape_next = false
+  local content_end = nil
+  
+  while i <= #response_text do
+    local char = response_text:sub(i, i)
+    
+    if escape_next then
+      escape_next = false
+    elseif char == "\\" then
+      escape_next = true
+    elseif char == '"' then
+      -- Found the closing quote
+      content_end = i - 1
+      break
+    end
+    
+    i = i + 1
+  end
+  
+  if not content_end then
+    return nil, "Failed to parse API response - unclosed text field"
+  end
+  
+  local content = response_text:sub(content_start, content_end)
   
   -- Unescape JSON string
   content = content:gsub("\\n", "\n")

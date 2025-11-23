@@ -166,7 +166,7 @@ require("code-improver").setup({
   api_key = os.getenv("ANTHROPIC_API_KEY"),
   standards_folder = "./docs/standards/",
   model = "claude-3-5-sonnet-20241022",
-  max_tokens = 4096,
+  max_tokens = 8192,
   split_position = "right",
   split_size = 80,  -- 80 columns wide
 })

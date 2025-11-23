@@ -6,7 +6,7 @@ M.defaults = {
   api_key = nil, -- Will be read from ANTHROPIC_API_KEY env var if not set
   standards_folder = "./docs/standards/",
   model = "claude-3-5-sonnet-20241022",
-  max_tokens = 4096,
+  max_tokens = 8192, -- Increased for more comprehensive responses
   split_position = "right", -- right, left, above, below
   split_size = nil, -- nil for default (50%)
 }
