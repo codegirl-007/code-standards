@@ -66,6 +66,26 @@ end
 
 -- Parse the API response
 local function parse_response(response_text)
+  -- Try using vim's built-in JSON decoder first (Neovim 0.8+)
+  if vim.json and vim.json.decode then
+    local ok, decoded = pcall(vim.json.decode, response_text)
+    if ok then
+      -- Check for error in response
+      if decoded.error then
+        return nil, "API Error: " .. (decoded.error.message or "Unknown error")
+      end
+      
+      -- Extract text content from the first content block
+      if decoded.content and decoded.content[1] and decoded.content[1].text then
+        return decoded.content[1].text, nil
+      end
+      
+      return nil, "Failed to find text content in API response"
+    end
+    -- If vim.json.decode failed, fall through to manual parsing
+  end
+  
+  -- Fallback: Manual parsing
   -- Find the content field in the JSON response
   -- We need to properly handle escaped quotes within the text content
   
@@ -141,33 +161,54 @@ function M.improve_code(config, standards_content, code_content, filename)
   f:write(json_payload)
   f:close()
   
-  -- Build curl command
+  -- Create temp file for response
+  local response_file = os.tmpname()
+  
+  -- Build curl command with output to file
   local curl_cmd = string.format(
     'curl -s -X POST https://api.anthropic.com/v1/messages ' ..
     '-H "Content-Type: application/json" ' ..
     '-H "x-api-key: %s" ' ..
     '-H "anthropic-version: 2023-06-01" ' ..
-    '-d @%s',
+    '-d @%s ' ..
+    '-o %s',
     config.api_key,
-    temp_file
+    temp_file,
+    response_file
   )
   
   -- Execute request
-  local response = vim.fn.system(curl_cmd)
+  vim.fn.system(curl_cmd)
   local exit_code = vim.v.shell_error
   
-  -- Clean up temp file
+  -- Clean up request temp file
   os.remove(temp_file)
   
-  -- Check for errors
+  -- Check for curl errors
   if exit_code ~= 0 then
-    return nil, "API request failed with exit code " .. exit_code .. ": " .. response
+    os.remove(response_file)
+    return nil, "API request failed with exit code " .. exit_code
   end
+  
+  -- Read response from file (handles large responses better)
+  local response_fh = io.open(response_file, "r")
+  if not response_fh then
+    os.remove(response_file)
+    return nil, "Failed to read API response"
+  end
+  
+  local response = response_fh:read("*all")
+  response_fh:close()
+  
+  -- Clean up response temp file
+  os.remove(response_file)
   
   -- Parse response
   local content, err = parse_response(response)
   if err then
-    return nil, err
+    -- Add helpful debug info
+    local preview = response:sub(1, 200)
+    return nil, err .. "\n\nResponse preview: " .. preview
   end
   
   return content, nil
